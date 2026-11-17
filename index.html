@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10151d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Trade Günlüğüm</title>
+<style>
+:root{color-scheme:dark;--bg:#0d1118;--panel:#151c27;--panel2:#1b2532;--line:#293647;--muted:#91a0b4;--text:#edf2f8;--green:#32c48d;--red:#ff6577;--accent:#7aa7ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:20px max(18px,calc((100vw - 1100px)/2));border-bottom:1px solid var(--line);background:#111823;position:sticky;top:0;z-index:2}
+h1{font-size:19px;margin:0;letter-spacing:.2px}.sub{color:var(--muted);font-size:12px}
+main{max-width:1100px;margin:24px auto;padding:0 18px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.month{display:flex;align-items:center;gap:14px}.month h2{font-size:20px;margin:0;min-width:155px;text-align:center}
+button,.btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:9px 13px;border-radius:10px;cursor:pointer;font:inherit}
+button:hover,.btn:hover{border-color:var(--accent)}button.primary{background:#315caa;border-color:#4778d0}
+.stats{display:flex;gap:9px;flex-wrap:wrap}.stat{background:var(--panel);border:1px solid var(--line);padding:8px 12px;border-radius:10px;font-size:13px;color:var(--muted)}
+.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}.weekday{text-align:center;color:var(--muted);font-size:12px;padding:5px}
+.day{min-height:105px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-width:0}
+.day:hover{border-color:var(--accent)}.day.muted{opacity:.38}.day.today{outline:1px solid var(--accent)}.day.profit{border-color:#247b5d;background:linear-gradient(145deg,#14271f,var(--panel) 70%)}.day.loss{border-color:#8d3947;background:linear-gradient(145deg,#2b1920,var(--panel) 70%)}
+.daynum{font-size:13px;color:#cbd5e1}.dayresult{font-size:12px;font-weight:650}.daymeta{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:16px;z-index:5}.modal.open{display:flex}
+.dialog{width:min(760px,100%);max-height:92vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.dialoghead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}.dialog h2{font-size:18px;margin:0}
+.trade{background:#101722;border:1px solid var(--line);border-radius:12px;padding:13px;margin:12px 0}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+input,select,textarea{width:100%;background:#0d141e;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);font:inherit}
+textarea{min-height:86px;resize:vertical}.field{margin:10px 0}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+.images{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.images img{width:115px;height:85px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.hint{color:var(--muted);font-size:12px;margin-top:14px}.empty{text-align:center;padding:30px;color:var(--muted)}
+@media(max-width:650px){main{margin:16px auto;padding:0 10px}.calendar{gap:4px}.day{min-height:76px;padding:5px;border-radius:8px}.weekday{font-size:10px}.daymeta{display:none}.dayresult{font-size:10px}.month h2{font-size:17px;min-width:130px}.row{grid-template-columns:1fr}.stats{width:100%}.stat{font-size:11px}}
+</style></head>
+<body>
+<header><div><h1>Trade Günlüğüm</h1><div class="sub">İşlemlerini gün gün takip et</div></div><div class="sub">Kişisel günlük</div></header>
+<main>
+ <div class="top">
+  <div class="month"><button id="prev" aria-label="Önceki ay">‹</button><h2 id="monthTitle"></h2><button id="next" aria-label="Sonraki ay">›</button><button id="todayBtn">Bugün</button></div>
+  <div class="stats"><div class="stat" id="tradeCount">0 işlem</div><div class="stat" id="winCount">0 kârlı gün</div><div class="stat" id="lossCount">0 zararlı gün</div></div>
+ </div>
+ <div class="calendar" id="calendar"></div>
+ <p class="hint">Güne tıkla, işlemlerini ve ekran görüntülerini ekle. Veriler şu an bu tarayıcıda saklanır; farklı cihazlarla otomatik senkronize olmaz.</p>
+</main>
+<div class="modal" id="modal"><div class="dialog">
+ <div class="dialoghead"><div><h2 id="dayTitle">Günlük kayıt</h2><div class="sub">Bu güne ait işlemler</div></div><button id="close">Kapat ✕</button></div>
+ <div id="trades"></div>
+ <button class="primary" id="addTrade">+ İşlem ekle</button>
+ <div class="field"><label>Günlük genel not</label><textarea id="dayNote" placeholder="Günün değerlendirmesi, psikoloji, dersler..."></textarea></div>
+ <div class="actions"><button id="save" class="primary">Kaydet</button></div>
+</div></div>
+<script>
+const $=s=>document.querySelector(s);
+const monthNames=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+const weekdays=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+let view=new Date();view.setDate(1);let selected='';let records=load();
+function load(){try{return JSON.parse(localStorage.getItem('tradeJournalV1')||'{}')}catch{return {}}}
+function persist(){localStorage.setItem('tradeJournalV1',JSON.stringify(records))}
+function key(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dayTotal(r){return (r?.trades||[]).reduce((s,t)=>s+(Number(t.pnl)||0),0)}
+function render(){
+ $('#monthTitle').textContent=monthNames[view.getMonth()]+' '+view.getFullYear();
+ const cal=$('#calendar');cal.innerHTML='';
+ weekdays.forEach(w=>{let e=document.createElement('div');e.className='weekday';e.textContent=w;cal.append(e)});
+ const first=new Date(view.getFullYear(),view.getMonth(),1), offset=(first.getDay()+6)%7;
+ const start=new Date(first);start.setDate(1-offset);
+ const today=key(new Date());let total=0,wins=0,losses=0;
+ Object.values(records).forEach(r=>{total+=(r.trades||[]).length;let n=dayTotal(r);if((r.trades||[]).length&&n>0)wins++;if((r.trades||[]).length&&n<0)losses++});
+ $('#tradeCount').textContent=total+' işlem';$('#winCount').textContent=wins+' kârlı gün';$('#lossCount').textContent=losses+' zararlı gün';
+ for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let k=key(d),r=records[k],n=dayTotal(r),has=(r?.trades||[]).length;
+ let e=document.createElement('div');e.className='day'+(d.getMonth()!==view.getMonth()?' muted':'')+(k===today?' today':'')+(has&&n>0?' profit':has&&n<0?' loss':'');
+ let num=document.createElement('div');num.className='daynum';num.textContent=d.getDate();e.append(num);
+ if(has){let res=document.createElement('div');res.className='dayresult';res.style.color=n>0?'var(--green)':n<0?'var(--red)':'var(--muted)';res.textContent=(n>0?'+':'')+n.toFixed(2);e.append(res);
+ let meta=document.createElement('div');meta.className='daymeta';meta.textContent=has+' işlem · '+[...new Set(r.trades.map(t=>t.pair).filter(Boolean))].join(', ');e.append(meta)}
+ e.addEventListener('click',()=>openDay(k));cal.append(e)}
+}
+function openDay(k){selected=k;let r=records[k]||{trades:[],note:''};let [y,m,d]=k.split('-');$('#dayTitle').textContent=Number(d)+' '+monthNames[Number(m)-1]+' '+y;$('#dayNote').value=r.note||'';$('#trades').innerHTML='';(r.trades||[]).forEach(addTradeCard);$('#modal').classList.add('open')}
+function addTradeCard(t={pair:'',side:'Long',pnl:'',note:'',images:[]}){
+ const wrap=document.createElement('div');wrap.className='trade';
+ wrap.innerHTML=`<div class="actions" style="margin:0 0 8px"><strong>İşlem</strong><button type="button" class="remove">Sil</button></div>
+ <div class="row"><div class="field"><label>Parite / Enstrüman</label><input class="pair" list="pairs" placeholder="Örn. XAUUSD"></div><div class="field"><label>Yön</label><select class="side"><option>Long</option><option>Short</option></select></div></div>
+ <datalist id="pairs"><option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>NAS100</option><option>US30</option><option>BTCUSD</option><option>ETHUSD</option></datalist>
+ <div class="row">
+ <div class="field"><label>RR (Risk / Ödül)</label><input class="rr" type="number" step="any" placeholder="Örn. 2.5"></div>
+ <div class="field"><label>Kâr / Zarar (para)</label><input class="pnl" type="number" step="any" placeholder="Örn. 1500 veya -500"></div>
+ </div>
+ <div class="field"><label>İşlem notu</label><textarea class="note" placeholder="Giriş sebebi, setup, hata, çıkış..."></textarea></div>
+ <div class="field"><label>Ekran görüntüleri</label><input class="files" type="file" accept="image/*" multiple><div class="images"></div></div>`;
+ wrap.querySelector('.pair').value=t.pair||'';wrap.querySelector('.side').value=t.side||'Long';wrap.querySelector('.rr').value=t.rr??'';wrap.querySelector('.pnl').value=t.pnl??'';wrap.querySelector('.note').value=t.note||'';
+ wrap._images=t.images||[];const preview=wrap.querySelector('.images');
+ function show(){preview.innerHTML='';wrap._images.forEach(src=>{let im=document.createElement('img');im.src=src;preview.append(im)})}show();
+ wrap.querySelector('.files').addEventListener('change',async ev=>{for(const f of ev.target.files){if(f.size>4*1024*1024){alert('Her görsel en fazla 4 MB olabilir.');continue}wrap._images.push(await new Promise(ok=>{let rd=new FileReader();rd.onload=()=>ok(rd.result);rd.readAsDataURL(f)}))}show();ev.target.value=''});
+ wrap.querySelector('.remove').addEventListener('click',()=>wrap.remove());$('#trades').append(wrap);
+}
+function saveDay(){let trades=[...$('#trades').children].map(w=>({pair:w.querySelector('.pair').value.trim(),side:w.querySelector('.side').value,rr:w.querySelector('.rr').value,pnl:w.querySelector('.pnl').value,note:w.querySelector('.note').value,images:w._images}));let note=$('#dayNote').value;
+ if(trades.length||note.trim())records[selected]={trades,note};else delete records[selected];
+ try{persist()}catch(e){alert('Tarayıcı depolama alanı dolmuş olabilir. Daha az/büyük boyutlu görsel ekleyip tekrar dene.');return}
+ $('#modal').classList.remove('open');render()}
+$('#prev').onclick=()=>{view.setMonth(view.getMonth()-1);render()};$('#next').onclick=()=>{view.setMonth(view.getMonth()+1);render()};
+$('#todayBtn').onclick=()=>{view=new Date();view.setDate(1);render()};
+$('#close').onclick=()=>$('#modal').classList.remove('open');$('#addTrade').onclick=()=>addTradeCard();
+$('#save').onclick=saveDay;$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')$('#modal').classList.remove('open')});
+render();
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));}</script>
+</body></html>
